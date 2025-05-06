@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import CategoryPage from './pages/CategoryPage'
+import AdminPanel from './pages/AdminPanel'
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <Routes>
         <Route path="/" element={<div className="p-4 text-center text-3xl font-bold">خوش آمدید به منوی رستوران</div>} />
         <Route path="/category/:name" element={<CategoryPage />} />
+        <Route path="/admin" element={<AdminPanel />} />
       </Routes>
       <Footer />
     </Router>

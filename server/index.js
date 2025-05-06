@@ -1,21 +1,34 @@
-// server/index.js
 const express = require('express');
 const cors = require('cors');
+const pool = require('./db');
+require('dotenv').config();
+
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.use(cors()); // allow frontend requests
-app.use(express.json()); // parse JSON bodies
+// Get all menu items
+app.get('/menu', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM menu ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-const menu = [
-  { id: 1, name: "کباب کوبیده", description: "گوشت چرخ‌کرده و ادویه‌جات", price: 120000, category: "main" },
-  { id: 2, name: "جوجه کباب", description: "مرغ مزه‌دار شده با زعفران", price: 100000, category: "main" },
-  { id: 3, name: "سالاد شیرازی", description: "خیار، گوجه، پیاز", price: 30000, category: "appetizer" },
-  { id: 4, name: "بستنی سنتی", description: "زعفرانی و گلاب", price: 25000, category: "dessert" },
-  { id: 5, name: "دوغ محلی", description: "نوشیدنی سنتی با نعناع", price: 15000, category: "drink" },
-];
-
-app.get('/menu', (req, res) => {
-  res.json(menu);
+// Add a new menu item
+app.post('/menu', async (req, res) => {
+  const { name, description, price, category } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO menu (name, description, price, category) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, description, price, category]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = 3000;
