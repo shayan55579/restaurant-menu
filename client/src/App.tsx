@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 import CategoryPage from './pages/CategoryPage';
 import AdminPanel from './pages/AdminPanel';
 import Home from './pages/Home';
-
+import Login from './pages/Login';
 function App() {
   return (
     <Router>
@@ -13,6 +13,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/category/:name" element={<CategoryPage />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
       <Footer />
     </Router>

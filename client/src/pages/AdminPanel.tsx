@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
 
 interface MenuItem {
   id: number;
@@ -11,6 +12,14 @@ interface MenuItem {
 }
 
 const AdminPanel = () => {
+  const navigate = useNavigate(); // ✅ Hook inside component
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) navigate('/login');
+  }, []);
+
   const [items, setItems] = useState<MenuItem[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [formItem, setFormItem] = useState<Omit<MenuItem, 'id'>>({

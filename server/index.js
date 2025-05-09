@@ -60,6 +60,21 @@ app.delete('/menu/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+const jwt = require('jsonwebtoken');
+const SECRET = 'mysecretkey'; // In production use environment variable
+
+// Simple login route
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Hardcoded admin credentials
+  if (username === 'admin' && password === '1234') {
+    const token = jwt.sign({ username }, SECRET, { expiresIn: '2h' });
+    res.json({ token });
+  } else {
+    res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است' });
+  }
+});
 
 // Start the server
 const PORT = 3000;
