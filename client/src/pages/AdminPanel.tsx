@@ -23,6 +23,8 @@ const AdminPanel = () => {
     price: 0,
     category: '',
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
 
   useEffect(() => {
     fetch('http://localhost:3000/check-auth', { credentials: 'include' })
@@ -187,28 +189,54 @@ const AdminPanel = () => {
         )}
       </div>
 
+      {/* Search and Filter */}
+      <div className="flex flex-col md:flex-row gap-3 mb-6">
+        <input
+          className="border p-2 rounded w-full md:w-1/2"
+          placeholder="جستجو بر اساس نام غذا"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <select
+          className="border p-2 rounded w-full md:w-1/2"
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+        >
+          <option value="">همه دسته‌بندی‌ها</option>
+          <option value="main">غذای اصلی</option>
+          <option value="appetizer">پیش‌غذا</option>
+          <option value="dessert">دسر</option>
+          <option value="drink">نوشیدنی</option>
+        </select>
+      </div>
+
       <ul className="space-y-3">
-        {items.map((item) => (
-          <li key={item.id} className="border p-4 rounded shadow-sm text-right">
-            <div className="font-bold">{item.name}</div>
-            <div className="text-sm text-gray-600">{item.description}</div>
-            <div>{item.price.toLocaleString()} تومان | {item.category}</div>
-            <div className="flex gap-2 mt-2 justify-end">
-              <button
-                className="bg-yellow-400 px-3 py-1 text-sm rounded"
-                onClick={() => handleEdit(item)}
-              >
-                ویرایش
-              </button>
-              <button
-                className="bg-red-500 text-white px-3 py-1 text-sm rounded"
-                onClick={() => handleDelete(item.id)}
-              >
-                حذف
-              </button>
-            </div>
-          </li>
-        ))}
+        {items
+          .filter((item) =>
+            item.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            (filterCategory ? item.category === filterCategory : true)
+          )
+          .map((item) => (
+            <li key={item.id} className="border p-4 rounded shadow-sm text-right">
+              <div className="font-bold">{item.name}</div>
+              <div className="text-sm text-gray-600">{item.description}</div>
+              <div>{item.price.toLocaleString()} تومان | {item.category}</div>
+              <div className="flex gap-2 mt-2 justify-end">
+                <button
+                  className="bg-yellow-400 px-3 py-1 text-sm rounded"
+                  onClick={() => handleEdit(item)}
+                >
+                  ویرایش
+                </button>
+                <button
+                  className="bg-red-500 text-white px-3 py-1 text-sm rounded"
+                  onClick={() => handleDelete(item.id)}
+                >
+                  حذف
+                </button>
+              </div>
+            </li>
+          ))}
       </ul>
     </div>
   );
