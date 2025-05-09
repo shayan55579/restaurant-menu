@@ -1,83 +1,97 @@
+// File: server/index.js
+
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const pool = require('./db');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+const PORT = 3000;
+const SECRET = 'your_secret_key';
+
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
-// GET all menu items
-app.get('/menu', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM menu ORDER BY id');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('GET /menu error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST new menu item
-app.post('/menu', async (req, res) => {
-  const { name, description, price, category } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO menu (name, description, price, category) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, description, price, category]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('POST /menu error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// PUT (update) a menu item
-app.put('/menu/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, description, price, category } = req.body;
-  try {
-    const result = await pool.query(
-      'UPDATE menu SET name = $1, description = $2, price = $3, category = $4 WHERE id = $5 RETURNING *',
-      [name, description, price, category, id]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('PUT /menu/:id error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DELETE a menu item
-app.delete('/menu/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    await pool.query('DELETE FROM menu WHERE id = $1', [id]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('DELETE /menu/:id error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-const jwt = require('jsonwebtoken');
-const SECRET = 'mysecretkey'; // In production use environment variable
-
-// Simple login route
+// Login Route
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-
-  // Hardcoded admin credentials
   if (username === 'admin' && password === '1234') {
     const token = jwt.sign({ username }, SECRET, { expiresIn: '2h' });
-    res.json({ token });
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false,
+      maxAge: 2 * 60 * 60 * 1000,
+    });
+    res.json({ success: true });
   } else {
-    res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است' });
+    res.status(401).json({ error: 'اطلاعات ورود اشتباه است' });
   }
 });
 
-// Start the server
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+// Logout Route
+app.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ success: true });
 });
+
+// Auth Middleware
+const authMiddleware = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ error: 'نیاز به ورود دارید' });
+
+  try {
+    const user = jwt.verify(token, SECRET);
+    req.user = user;
+    next();
+  } catch {
+    return res.status(403).json({ error: 'توکن نامعتبر است' });
+  }
+};
+
+// Auth Check
+app.get('/check-auth', (req, res) => {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ authenticated: false });
+  try {
+    jwt.verify(token, SECRET);
+    res.json({ authenticated: true });
+  } catch {
+    res.status(403).json({ authenticated: false });
+  }
+});
+
+// Menu Routes
+app.get('/menu', authMiddleware, async (req, res) => {
+  const result = await pool.query('SELECT * FROM menu ORDER BY id');
+  res.json(result.rows);
+});
+
+app.post('/menu', authMiddleware, async (req, res) => {
+  const { name, description, price, category } = req.body;
+  const result = await pool.query(
+    'INSERT INTO menu (name, description, price, category) VALUES ($1, $2, $3, $4) RETURNING *',
+    [name, description, price, category]
+  );
+  res.json(result.rows[0]);
+});
+
+app.put('/menu/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { name, description, price, category } = req.body;
+  const result = await pool.query(
+    'UPDATE menu SET name=$1, description=$2, price=$3, category=$4 WHERE id=$5 RETURNING *',
+    [name, description, price, category, id]
+  );
+  res.json(result.rows[0]);
+});
+
+app.delete('/menu/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  await pool.query('DELETE FROM menu WHERE id = $1', [id]);
+  res.json({ success: true });
+});
+
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

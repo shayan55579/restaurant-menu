@@ -1,7 +1,9 @@
+// File: client/src/pages/AdminPanel.tsx
+
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useNavigate } from 'react-router-dom';
 
 interface MenuItem {
   id: number;
@@ -12,14 +14,7 @@ interface MenuItem {
 }
 
 const AdminPanel = () => {
-  const navigate = useNavigate(); // ✅ Hook inside component
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) navigate('/login');
-  }, []);
-
+  const navigate = useNavigate();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [formItem, setFormItem] = useState<Omit<MenuItem, 'id'>>({
@@ -29,8 +24,22 @@ const AdminPanel = () => {
     category: '',
   });
 
+  useEffect(() => {
+    fetch('http://localhost:3000/check-auth', { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((data) => {
+        if (!data.authenticated) navigate('/login');
+      })
+      .catch(() => navigate('/login'));
+  }, []);
+
   const fetchMenu = async () => {
-    const res = await fetch('http://localhost:3000/menu');
+    const res = await fetch('http://localhost:3000/menu', {
+      credentials: 'include',
+    });
     const data = await res.json();
     setItems(data);
   };
@@ -38,6 +47,15 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchMenu();
   }, []);
+
+  const handleLogout = async () => {
+    await fetch('http://localhost:3000/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    toast.info('خروج انجام شد');
+    navigate('/login');
+  };
 
   const handleAdd = async () => {
     if (!formItem.name || !formItem.price || !formItem.category) {
@@ -48,6 +66,7 @@ const AdminPanel = () => {
     const response = await fetch('http://localhost:3000/menu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(formItem),
     });
 
@@ -69,6 +88,7 @@ const AdminPanel = () => {
 
     const res = await fetch(`http://localhost:3000/menu/${id}`, {
       method: 'DELETE',
+      credentials: 'include',
     });
 
     if (res.ok) {
@@ -96,6 +116,7 @@ const AdminPanel = () => {
     const response = await fetch(`http://localhost:3000/menu/${editingItem.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(formItem),
     });
 
@@ -113,7 +134,15 @@ const AdminPanel = () => {
   return (
     <div className="p-4 max-w-2xl mx-auto">
       <ToastContainer rtl autoClose={3000} />
-      <h2 className="text-2xl font-bold mb-4 text-center">پنل مدیریت منو</h2>
+      <div className="flex justify-between mb-4">
+        <h2 className="text-2xl font-bold">پنل مدیریت منو</h2>
+        <button
+          className="bg-red-600 text-white px-4 py-2 rounded"
+          onClick={handleLogout}
+        >
+          خروج
+        </button>
+      </div>
 
       <div className="grid gap-3 mb-6">
         <input
@@ -163,9 +192,7 @@ const AdminPanel = () => {
           <li key={item.id} className="border p-4 rounded shadow-sm text-right">
             <div className="font-bold">{item.name}</div>
             <div className="text-sm text-gray-600">{item.description}</div>
-            <div>
-              {item.price.toLocaleString()} تومان | {item.category}
-            </div>
+            <div>{item.price.toLocaleString()} تومان | {item.category}</div>
             <div className="flex gap-2 mt-2 justify-end">
               <button
                 className="bg-yellow-400 px-3 py-1 text-sm rounded"
