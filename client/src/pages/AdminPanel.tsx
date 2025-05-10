@@ -115,6 +115,8 @@ const AdminPanel = () => {
       category: item.category,
       image_url: item.image_url,
     });
+    // Scroll to top of the page
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleUpdate = async () => {
